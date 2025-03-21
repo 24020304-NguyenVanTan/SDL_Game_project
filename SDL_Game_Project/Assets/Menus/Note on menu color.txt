@@ -1,0 +1,4 @@
+Frame: #8a6b53
+Frame shadow: #b88f70
+Inner frame: #d6a37d
+On Piskel, the menu is on a scale of 1:10

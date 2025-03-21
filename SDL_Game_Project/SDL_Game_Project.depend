@@ -1,0 +1,14 @@
+# depslib dependency file v1.0
+1742105373 source:d:\sdl_game_project\main.cpp
+	"Game_Engine.hpp"
+
+1742455059 source:d:\sdl_game_project\game_engine.cpp
+	"Game_Engine.hpp"
+
+1742107434 d:\sdl_game_project\game_engine.hpp
+	<SDL.h>
+	<SDL_image.h>
+	<SDL_ttf.h>
+	<SDL_mixer.h>
+	<bits/stdc++.h>
+
