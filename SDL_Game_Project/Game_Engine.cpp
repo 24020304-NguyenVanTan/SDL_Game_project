@@ -3,12 +3,13 @@
 fstream PlayerSave("Data_Saves/PlayerSave.txt");
 fstream WeakSkeSave("Data_Saves/WeakSkeSave.txt");
 //Window and renderer
-SDL_Window* window=SDL_CreateWindow("Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, Max_screen_W, Max_screen_H, SDL_WINDOW_SHOWN);
+SDL_Window* window=SDL_CreateWindow("Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP);
 SDL_Renderer* renderer=SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 //Control
 bool IsPaused = false;
 bool running = true, InMenu=true;
 const Uint8* KeyCheck = SDL_GetKeyboardState(nullptr);
+int attack_mode=1;
 SDL_Event e;
 //Texture
 //Menu
@@ -72,6 +73,10 @@ SDL_Texture* Slash_Attack_Texture[]={
     IMG_LoadTexture(renderer, "D:/SDL_Game_Project/Assets/Sprites/Attacks/Slash/Slash_3.png"),
 };
 SDL_Point SlashRectCent={50, 50};
+//Arrow
+SDL_Texture* ArrowText=IMG_LoadTexture(renderer, "D:/SDL_Game_Project/Assets/Sprites/Weapons/Arrow.png");
+SDL_Rect ArrowRect={0, 0, 48, 10};
+SDL_Point ArrowRectCent={24, 5};
 //Weak skeleton thrust
 SDL_Texture* Ske_thrust=IMG_LoadTexture(renderer, "D:/SDL_Game_Project/Assets/Sprites/Attacks/Ske_thrust.png");
 SDL_Rect Ske_thrust_rect={0, 0, 50, 20};
@@ -117,14 +122,53 @@ std::vector<weak_skeleton> WeakSkeletons={
     {true, 280, 560, 0.0f, 0.0f, true, SDL_FLIP_NONE, 0, 0, 30},
     {true, 320, 560, 0.0f, 0.0f, true, SDL_FLIP_NONE, 1, 0, 30},
     {true, 360, 560, 0.0f, 0.0f, true, SDL_FLIP_NONE, 0, 0, 30},
-    {true, 400, 560, 0.0f, 0.0f, true, SDL_FLIP_NONE, 1, 0, 30},
-    {true, 440, 560, 0.0f, 0.0f, true, SDL_FLIP_NONE, 0, 0, 30},
-    {true, 480, 560, 0.0f, 0.0f, true, SDL_FLIP_NONE, 1, 0, 30},
-    {true, 520, 560, 0.0f, 0.0f, true, SDL_FLIP_NONE, 0, 0, 30},
-    {true, 560, 560, 0.0f, 0.0f, true, SDL_FLIP_NONE, 1, 0, 30},
-    {true, 600, 560, 0.0f, 0.0f, true, SDL_FLIP_NONE, 0, 0, 30},
+    //{true, 400, 560, 0.0f, 0.0f, true, SDL_FLIP_NONE, 1, 0, 30},
+    //{true, 440, 560, 0.0f, 0.0f, true, SDL_FLIP_NONE, 0, 0, 30},
+    //{true, 480, 560, 0.0f, 0.0f, true, SDL_FLIP_NONE, 1, 0, 30},
+    //{true, 520, 560, 0.0f, 0.0f, true, SDL_FLIP_NONE, 0, 0, 30},
+    //{true, 560, 560, 0.0f, 0.0f, true, SDL_FLIP_NONE, 1, 0, 30},
+    //{true, 600, 560, 0.0f, 0.0f, true, SDL_FLIP_NONE, 0, 0, 30},
 };
 SDL_Rect WeakSkeletonRect={0, 0, 70, 70};
+//Arrow
+std::vector<projectile> Arrow;
+projectile arrow;
+int destx, desty;
+
+void UpdateArrow(){
+    for(int i = 0; i < Arrow.size(); i++){
+        if(ArrowRect.x<-48 || ArrowRect.x>Max_screen_W+48 || ArrowRect.y<-48 || ArrowRect.y>Max_screen_H+48){
+            Arrow.erase(Arrow.begin()+i);
+            i--;
+            continue;
+        }
+        for (int j = 0; j < Platforms.size(); j++) {
+            platTop = Platforms[j].y;
+            platBottom = Platforms[j].y + Platforms[j].h;
+            platLeft = Platforms[j].x;
+            platRight = Platforms[j].x + Platforms[j].w;
+            if (Arrow[i].x > platLeft && Arrow[i].x < platRight && Arrow[i].y > platTop && Arrow[i].y < platBottom) {
+                Arrow.erase(Arrow.begin()+i);
+                i--;
+                continue;
+            }
+        }
+        for(int j = 0; j < WeakSkeletons.size(); j++){
+            if(WeakSkeletons[j].hp>0){
+                if(Arrow[i].x>WeakSkeletons[j].x && Arrow[i].x<WeakSkeletons[j].x+60 && Arrow[i].y>WeakSkeletons[j].y && Arrow[i].y<WeakSkeletons[j].y+60){
+                    WeakSkeletons[j].vx+=Arrow[i].vx/10;
+                    WeakSkeletons[j].vy+=Arrow[i].vy/20-2;
+                    WeakSkeletons[j].hp-=5;
+                    Arrow.erase(Arrow.begin()+i);
+                    i--;
+                    continue;
+                }
+            }
+        }
+        Arrow[i].x+=Arrow[i].vx;
+        Arrow[i].y+=Arrow[i].vy;
+    }
+}
 //Functions
 void SaveData(){
     //Player
@@ -270,6 +314,7 @@ void UpdateWeakSkeletons(){
         }
     }
 }
+//Arrow
 //Player
 void UpdatePlayer() {
     // Apply gravity
@@ -329,10 +374,33 @@ void UpdatePlayer() {
         Player.facing=SDL_FLIP_HORIZONTAL;
     }
     else if(Player.onPlatform) Player.vx = 0.0f;
-
-    if(Mouse.left && Slash.frame==0) Slash.frame=1;
+    //Attack
+    if(KeyCheck[SDL_SCANCODE_1]) attack_mode=1;
+    else if(KeyCheck[SDL_SCANCODE_2]) attack_mode=2;
+    if(Mouse.left){
+        if(attack_mode==1){
+            Slash.frame=1;
+        }
+        else if(attack_mode==2){
+            destx=Mouse.x+Camera.x;
+            desty=Mouse.y+Camera.y;
+            arrow.x=Player.x;
+            arrow.y=Player.y+15;
+            arrow.vx=39*(destx-arrow.x)/sqrt(pow((destx-arrow.x), 2)+pow((desty-arrow.y), 2));
+            arrow.vy=39*(desty-arrow.y)/sqrt(pow((destx-arrow.x), 2)+pow((desty-arrow.y), 2));
+            arrow.angle=atan(arrow.vy/arrow.vx)*57.2957795131-(int)(destx>arrow.x)*180;
+            Arrow.push_back(arrow);
+        }
+    }
 }
 //Render
+//Arrow
+void RenderArrow(){
+    for(int i = 0; i < Arrow.size(); i++){
+        ArrowRect = {int(Arrow[i].x - Camera.x), int(Arrow[i].y - Camera.y), 48, 10};
+        SDL_RenderCopyEx(renderer, ArrowText, NULL, &ArrowRect, Arrow[i].angle, &ArrowRectCent, SDL_FLIP_NONE);
+    }
+}
 //Player
 void RenderPlayer(){
     Player.frame=(Player.frame+1)%32;
@@ -414,6 +482,9 @@ void RenderAttack(){
 }
 //Game loop
 void GameLoop() {
+    int w, h;
+    SDL_GetWindowSize(window, &w, &h);
+    printf("Window size: %dx%d\n", w, h);
     while (running) {
         while (SDL_PollEvent(&e) != 0) {
             if(e.type==SDL_KEYDOWN){
@@ -440,6 +511,7 @@ void GameLoop() {
         }
         else{
             //Render gameplay;
+            RenderArrow();
             RenderMap();
             RenderWeakSkeletons();
             RenderPlayer();
@@ -452,7 +524,8 @@ void GameLoop() {
                 RenderWeakSkeletonsAttacks();
                 if(Slash.frame) RenderAttack();
                 UpdateWeakSkeletons();
-                UpdatePlayer();;
+                UpdateArrow();
+                UpdatePlayer();
             }
         }
         Mouse.left=false;
