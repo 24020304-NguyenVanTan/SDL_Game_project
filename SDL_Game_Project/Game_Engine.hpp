@@ -47,6 +47,11 @@ struct weak_skeleton {
     int attack_state;
     int hp;
 };
+struct projectile{
+    double x, y;
+    double vx, vy;
+    double angle;
+};
 //Camera
 struct camera {
     float x, y;
@@ -62,16 +67,13 @@ struct block {
     int w, h; // Width and height (pixels)
     int material;
 };
-struct projectile {
-    float x, y;
-    float vx, vy;
-    SDL_Rect Rect;
-};
 // Function prototypes
 //Data
 void SaveData();
 void RetrieveData();
 void ResetData();
+//Center menus
+void CenterMenus();
 //Update
 void UpdateCamera();
 void UpdatePlayer();
